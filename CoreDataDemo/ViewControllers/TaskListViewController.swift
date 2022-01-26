@@ -53,9 +53,7 @@ class TaskListViewController: UITableViewController {
             target: self,
             action: #selector(addNewTask)
         )
-        
         navigationController?.navigationBar.tintColor = .white
-        
     }
     
     @objc private func addNewTask() {
@@ -79,7 +77,6 @@ extension TaskListViewController {
         }
         
         let cancelAction = UIAlertAction(title: "Cancel", style: .destructive)
-        
         alert.addAction(saveAction)
         alert.addAction(cancelAction)
         alert.addTextField { textField in
@@ -105,11 +102,9 @@ extension TaskListViewController {
             DispatchQueue.main.async {
                 self.tableView.reloadData()
             }
-            
         }
         
         let cancelAction = UIAlertAction(title: "Cancel", style: .destructive)
-        
         alert.addAction(saveAction)
         alert.addAction(cancelAction)
         present(alert, animated: true)
