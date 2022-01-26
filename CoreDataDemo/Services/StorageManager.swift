@@ -5,13 +5,13 @@
 //  Created by Aliaksandr Rauko on 25.01.22.
 //
 
-import Foundation
+import UIKit
 import CoreData
 
 class StorageManager {
     
     static let shared = StorageManager()
-     
+    
     private init() {}
     
     
@@ -31,18 +31,18 @@ class StorageManager {
     func saveContext () {
         let context = persistentContainer.viewContext
         if context.hasChanges {
-        saveTask(context: context)
+        save(context: context)
         }
     }
     
-    func save(taskName: String, context: NSManagedObjectContext) {
+    func saveNewTask(taskName: String, context: NSManagedObjectContext) {
         
         let task = Task(context: context)
         task.name = taskName
         
         var taskList = fetchData(for: context)
         taskList.append(task)
-        saveTask(context: context)
+        save(context: context)
     }
     
     func fetchData(for context: NSManagedObjectContext) -> [Task] {
@@ -58,12 +58,12 @@ class StorageManager {
     }
     
     func deleteTask(at index: Int, for context: NSManagedObjectContext ) {
-        var taskList = fetchData(for: context)
-        taskList.remove(at: index)
-        saveTask(context: context)
+        let taskList = fetchData(for: context)
+        context.delete(taskList[index])
+        save(context: context)
     }
     
-    private func saveTask(context: NSManagedObjectContext) {
+    func save(context: NSManagedObjectContext) {
         do {
             try context.save()
         } catch let error {

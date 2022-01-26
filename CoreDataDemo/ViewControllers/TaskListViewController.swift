@@ -6,6 +6,7 @@
 //
 
 import UIKit
+import CloudKit
 
 class TaskListViewController: UITableViewController {
     
@@ -58,15 +59,18 @@ class TaskListViewController: UITableViewController {
     }
     
     @objc private func addNewTask() {
-        showAlert(with: "New Task", and: "What do you want to do?")
+        showAlertForNewTask(with: "New Task", and: "What do you want to do?")
     }
-    
-    private func showAlert(with title: String, and message: String) {
+}
+
+//MARK: - Alert
+extension TaskListViewController {
+    private func showAlertForNewTask(with title: String, and message: String) {
         let alert = UIAlertController(title: title, message: message, preferredStyle: .alert)
         let saveAction = UIAlertAction(title: "Save", style: .default) { _ in
             guard let task = alert.textFields?.first?.text, !task.isEmpty else { return }
             
-            StorageManager.shared.save(taskName: task, context: self.context)
+            StorageManager.shared.saveNewTask(taskName: task, context: self.context)
             self.taskList = StorageManager.shared.fetchData(for: self.context)
 
             let cellIndex = IndexPath(row: self.taskList.count - 1, section: 0)
@@ -79,13 +83,40 @@ class TaskListViewController: UITableViewController {
         alert.addAction(saveAction)
         alert.addAction(cancelAction)
         alert.addTextField { textField in
-            textField.placeholder = "New Task"
+            textField.placeholder = title
         }
         present(alert, animated: true)
     }
+    
+    private func showAlertForEditTask(with title: String, and message: String, and index: Int) {
+        let task = self.taskList[index]
+        let alert = UIAlertController(title: title, message: message, preferredStyle: .alert)
+        alert.addTextField()
+        
+        let textField = alert.textFields?.first
+        textField?.text = task.name
 
+        let saveAction = UIAlertAction(title: "Save", style: .default) { _ in
+            let textField = alert.textFields?.first
+            task.name = textField?.text
+            StorageManager.shared.save(context: self.context)
+            
+            self.taskList = StorageManager.shared.fetchData(for: self.context)
+            DispatchQueue.main.async {
+                self.tableView.reloadData()
+            }
+            
+        }
+        
+        let cancelAction = UIAlertAction(title: "Cancel", style: .destructive)
+        
+        alert.addAction(saveAction)
+        alert.addAction(cancelAction)
+        present(alert, animated: true)
+    }
 }
 
+//MARK: - tableView
 extension TaskListViewController {
     override func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
         taskList.count
@@ -100,13 +131,27 @@ extension TaskListViewController {
         cell.contentConfiguration = content
         return cell
     }
-    override func tableView(_ tableView: UITableView, commit editingStyle: UITableViewCell.EditingStyle, forRowAt indexPath: IndexPath) {
+
+    override func tableView(_ tableView: UITableView, trailingSwipeActionsConfigurationForRowAt indexPath: IndexPath) -> UISwipeActionsConfiguration? {
         
-        if editingStyle == .delete {
-            StorageManager.shared.deleteTask(at: indexPath.row, for: context)
-            taskList.remove(at: indexPath.row)
+        let delete = UIContextualAction(style: .destructive, title: "delete") { _, _, _ in
+            StorageManager.shared.deleteTask(at: indexPath.row, for: self.context)
+            self.taskList.remove(at: indexPath.row)
             tableView.deleteRows(at: [indexPath], with: .automatic)
         }
-
+        delete.image = UIImage(systemName: "trash")
+        delete.backgroundColor = .red
+        
+        let edit = UIContextualAction(style: .destructive, title: "edit") { _, _, _ in
+            self.showAlertForEditTask(with: "Edid task",
+                                      and: "Do you edit task?",
+                                      and: indexPath.row)
+            }
+        
+        edit.image = UIImage(systemName: "pencil")
+        edit.backgroundColor = .blue
+        
+        return UISwipeActionsConfiguration(actions: [delete, edit])
     }
+    
 }
